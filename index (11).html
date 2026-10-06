@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leaveboard demo</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Brand book: warm white 60 / ink 25 / orange 10 / pink 5 */
+  --orange:#FF743D;--pink:#F5A6C8;--ink-c:#272334;--warm:#FFF8F2;--berry:#743354;
+  --paper:#FFF8F2;--surface:#FFFFFF;--ink:#272334;--muted:#615B70;--line:#EADFD6;
+  --brand:#743354;--brand-ink:#FFF8F2;
+  --vac:#743354;--sick:#F5A6C8;--trav:#FF743D;
+  --hol:#F4E9DF;--wknd:#F8EFE7;--bad:#B23A3A;--good:#743354;
+  --radius:8px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#1E1B28;--surface:#272334;--ink:#FFF8F2;--muted:#B7AFC2;--line:#3A3449;
+    --brand:#F5A6C8;--brand-ink:#272334;
+    --vac:#C77A9F;--hol:#2E2A3C;--wknd:#2A2637;--bad:#FF8A80;--good:#F5A6C8;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* Top bar */
+.top{background:var(--ink-c);color:var(--warm)}
+.top .wrap{display:flex;align-items:center;gap:16px;min-height:64px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.01em}
+.mark{width:28px;height:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.mark i{background:var(--warm);border-radius:2px;opacity:.25}
+.mark i:nth-child(1),.mark i:nth-child(5),.mark i:nth-child(9){background:var(--orange);opacity:1}
+.mark i:nth-child(2),.mark i:nth-child(6){background:var(--pink);opacity:1}
+.co{color:#CFC8D8;font-weight:500;font-size:14px}
+.demo-chip{font-size:12.5px;color:#CFC8D8;border:1px dashed #5A5370;border-radius:999px;padding:3px 10px}
+.persona{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;color:#CFC8D8}
+.persona select{border:1px solid #5A5370;background:#332E44;color:var(--warm);border-radius:8px;padding:7px 10px;max-width:260px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-top:16px}
+.tab{border:0;background:transparent;padding:9px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.tab:hover{background:var(--surface);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:inset 0 -3px 0 var(--orange)}
+.badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--orange);color:var(--ink-c);font-weight:600;font-size:12px;line-height:20px;text-align:center}
+
+main{padding:24px 0 64px}
+h1{font-size:32px;line-height:1.2;margin:0 0 4px;letter-spacing:-.015em}
+h2{font-size:17px;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 20px;max-width:70ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:var(--ink-c);font-weight:600}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.small{padding:4px 10px;font-size:13.5px}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* My time off */
+.grid-mine{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.grid-mine{grid-template-columns:1fr}}
+.feature{background:var(--pink);border-color:var(--pink);color:var(--ink-c)}
+.feature .ledger-key,.feature .note{color:var(--ink-c)}
+.feature .lines,.feature .lines li{border-color:rgba(39,35,52,.18)}
+.feature .big small{color:var(--ink-c)}
+.feature .ledger-bar{background:rgba(255,248,242,.75)}
+.feature .seg-used{background:var(--berry)}
+.feature .seg-pend{background:repeating-linear-gradient(135deg,var(--berry) 0 3px,transparent 3px 6px)}
+.big{font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em}
+.big small{font-size:18px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:6px}
+.ledger-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--hol);margin:18px 0 6px}
+.ledger-bar span{display:block;height:100%}
+.seg-used{background:var(--vac)}
+.seg-pend{background:repeating-linear-gradient(135deg,var(--vac) 0 3px,transparent 3px 6px)}
+.ledger-key{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.ledger-key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.lines{margin:16px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.lines li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lines li b{font-weight:600}
+.lines li.total{font-weight:700;border-bottom:0}
+.req{display:grid;grid-template-columns:6px 1fr auto;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);align-items:center}
+.req:last-child{border-bottom:0}
+.req .strip{align-self:stretch;border-radius:3px}
+.req .t{font-weight:600}
+.req .m{font-size:13.5px;color:var(--muted)}
+.status{font-size:13px;font-weight:500;white-space:nowrap}
+.status.approved{color:var(--ink)}
+.status.rejected,.status.cancelled{color:var(--muted);text-decoration:line-through}
+.status.pending{color:var(--good)}
+.status.pending::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--orange);margin-right:6px}
+.trail{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:4px}
+.trail .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted)}
+.trail .dot.done{background:var(--good);border-color:var(--good)}
+.trail .dot.now{border-color:var(--orange);background:var(--orange)}
+.trail .bar{width:14px;height:1.5px;background:var(--line)}
+.empty{color:var(--muted);padding:24px 0;text-align:center}
+.group-label{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 0}
+
+/* Calendar */
+.cal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.cal-head .month{font-size:20px;font-weight:700;min-width:170px}
+.offnow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.chip i{width:8px;height:8px;border-radius:50%}
+.cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table.cal{border-collapse:separate;border-spacing:0;min-width:100%}
+.cal th,.cal td{padding:0}
+.cal thead th{font-size:11.5px;font-weight:500;color:var(--muted);text-align:center;height:44px;border-bottom:1px solid var(--line);min-width:30px}
+.cal thead th .dn{display:block;font-size:13px;color:var(--ink);font-weight:600}
+.cal thead th.today .dn{background:var(--orange);color:var(--ink-c);border-radius:5px;margin:0 3px}
+.cal .who{position:sticky;left:0;background:var(--surface);text-align:left;padding:0 14px;min-width:190px;max-width:220px;border-right:1px solid var(--line);z-index:1}
+.cal tbody .who{height:40px;border-bottom:1px solid var(--line)}
+.cal .who .n{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .who .r{font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal tbody td.d{border-bottom:1px solid var(--line);height:40px;position:relative}
+.cal td.we,.cal th.we{background:var(--wknd)}
+.cal td.hol,.cal th.hol{background:var(--hol)}
+.cal th.hol .dn{color:var(--muted)}
+.cal td.d .blk{position:absolute;inset:8px 0}
+.cal td.d .blk.start{left:4px;border-top-left-radius:5px;border-bottom-left-radius:5px}
+.cal td.d .blk.end{right:4px;border-top-right-radius:5px;border-bottom-right-radius:5px}
+.cal tr.me .who{box-shadow:inset 3px 0 0 var(--orange)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:12px;border-radius:3px}
+
+/* Approvals */
+.appr{display:grid;grid-template-columns:1fr auto;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);align-items:center}
+.appr:last-child{border-bottom:0}
+.appr .ctx{font-size:13.5px;color:var(--muted)}
+.appr .ctx b{color:var(--ink);font-weight:600}
+.warnline{color:var(--bad)}
+
+/* Admin table */
+.tbl-scroll{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12.5px;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td:first-child{white-space:normal;min-width:190px}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+.tbl td.num,.tbl th.num{text-align:right}
+.tbl input{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:4px 6px;font-size:13.5px}
+.tbl input[type=number]{width:64px;text-align:right}
+.settle{font-size:13px;font-weight:600}
+.settle.pay{color:var(--good)}
+.settle.owe{color:var(--bad)}
+.note{font-size:13px;color:var(--muted);margin-top:12px;max-width:80ch}
+
+/* Activity */
+.log{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:150px 80px 1fr;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.log li:last-child{border-bottom:0}
+.log .ts{color:var(--muted);font-size:13px}
+.log .ch{font-size:12px;font-weight:600;color:var(--muted)}
+@media (max-width:640px){.log li{grid-template-columns:1fr}}
+
+/* Modal */
+.scrim{position:fixed;inset:0;background:rgba(39,35,52,.55);display:grid;place-items:center;padding:16px;z-index:10}
+.modal{background:var(--surface);border-radius:12px;width:min(520px,100%);max-height:calc(100% - 32px);overflow:auto;padding:22px;border:1px solid var(--line)}
+.modal h2{font-size:19px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field label,.field .lbl{font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px;width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{align-self:flex-start;display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.preview{background:var(--paper);border-radius:8px;padding:12px 14px;font-size:14px;margin-bottom:16px}
+.preview .err{color:var(--bad);font-weight:500}
+.hint{font-size:12.5px;color:var(--muted)}
+.people-pick{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--paper)}
+.people-pick input{width:auto}
+.people-pick label{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:14px;color:var(--ink);font-weight:400}
+.hidden{display:none !important}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink-c);color:var(--warm);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;max-width:90vw}
+
+footer{color:var(--muted);font-size:13px;padding:24px 0 40px;border-top:1px solid var(--line)}
+footer a{color:var(--ink);text-decoration-color:var(--orange);text-decoration-thickness:2px;text-underline-offset:3px}
+.made{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink);font-weight:700}
+.made .mark i:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(5)):not(:nth-child(6)):not(:nth-child(9)){background:var(--ink)}
+.made span{font-weight:400;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   Settings for the demo. Change names here.
+   ============================================================ */
+const CONFIG = {
+  product: "Leaveboard",
+  company: "Northwind Labs",          // fictional client
+  builtBy: "Natalia Stepanova",
+  consultancy: "YOUR BRAND",         // working name from the brand book
+  tagline: "Automation and operations consulting",
+  contact: "you@example.com",         // replace with your contact email
+  allowance: 26                       // Luxembourg statutory minimum
+};
+
+/* ---------- Date helpers (ISO strings, UTC maths) ---------- */
+const pad = n => String(n).padStart(2,"0");
+const D = s => Date.parse(s + "T00:00:00Z");
+const iso = t => new Date(t).toISOString().slice(0,10);
+const addDays = (s,n) => iso(D(s) + n*864e5);
+const dow = s => new Date(D(s)).getUTCDay();
+const now = new Date();
+const TODAY = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+const YEAR = +TODAY.slice(0,4);
+
+function easter(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
+  g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,
+  m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return `${y}-${pad(mo)}-${pad(da)}`;
+}
+const holCache = {};
+function holidays(y){
+  if(holCache[y]) return holCache[y];
+  const e = easter(y), m = new Map([
+    [`${y}-01-01`,"New Year's Day"],[addDays(e,1),"Easter Monday"],[`${y}-05-01`,"Labour Day"],
+    [`${y}-05-09`,"Europe Day"],[addDays(e,39),"Ascension Day"],[addDays(e,50),"Whit Monday"],
+    [`${y}-06-23`,"National Day"],[`${y}-08-15`,"Assumption Day"],[`${y}-11-01`,"All Saints' Day"],
+    [`${y}-12-25`,"Christmas Day"],[`${y}-12-26`,"St Stephen's Day"]
+  ]);
+  return holCache[y] = m;
+}
+const holidayName = s => holidays(+s.slice(0,4)).get(s);
+const isWeekend = s => { const d = dow(s); return d===0 || d===6; };
+const isWorkday = s => !isWeekend(s) && !holidayName(s);
+function businessDays(a,b){ let n=0; for(let s=a; s<=b; s=addDays(s,1)) if(isWorkday(s)) n++; return n; }
+const roundHalfUp = x => Math.ceil(x*2 - 1e-9)/2;
+const fmtDays = n => n===0.5 ? "half a day" : (n===1 ? "1 day" : `${+n.toFixed(1)} days`);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Fake data, anchored to the current week ---------- */
+const MON = addDays(TODAY, -((dow(TODAY)+6)%7));
+const W = (w,d) => addDays(MON, w*7 + d);
+const endOfMonthPlus = k => { const t=new Date(D(TODAY)); return iso(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+k+1, 0)); };
+
+function seed(){
+  const people = [
+    {id:"tr",name:"Tomás Ribeiro", title:"CEO", managerId:null, isCEO:true, hireDate:"2021-02-01", carried:0, adjust:0},
+    {id:"ev",name:"Elena Varga", title:"People and Operations", managerId:"tr", isAdmin:true, hireDate:"2022-05-02", carried:2, adjust:0},
+    {id:"hw",name:"Hannah Weiss", title:"Engineering Lead", managerId:"tr", hireDate:"2022-09-01", carried:4, adjust:0},
+    {id:"dn",name:"Daniel Novak", title:"R&D Lead", managerId:"tr", hireDate:"2023-01-09", carried:1, adjust:0},
+    {id:"jk",name:"Jonas Keller", title:"Software Engineer", managerId:"hw", hireDate:"2024-04-15", carried:3, adjust:0},
+    {id:"ms",name:"Mateo Silva", title:"Embedded Engineer", managerId:"hw", hireDate:"2023-06-01", departureDate:endOfMonthPlus(1), carried:2, adjust:0},
+    {id:"ab",name:"Amira Benali", title:"Research Scientist", managerId:"dn", hireDate:"2025-02-03", carried:5, adjust:0},
+    {id:"lm",name:"Lucas Moreau", title:"Lab Technician", managerId:"dn", hireDate:`${YEAR}-03-16`, carried:0, adjust:0},
+    {id:"pn",name:"Priya Nair", title:"Business Development", managerId:"tr", hireDate:"2024-10-01", carried:0, adjust:1}
+  ].map(p => ({allowance:CONFIG.allowance, isAdmin:false, isCEO:false, departureDate:"", ...p}));
+
+  let id = 0;
+  const mk = (personId,type,start,end,status,half=null,note="") => {
+    const days = half ? 0.5 : businessDays(start,end);
+    return {id:++id, personId, type, start, end, half, days, status, note, created:addDays(start,-14)};
+  };
+  const requests = [
+    mk("jk","vacation",W(-10,0),W(-9,4),"approved"),
+    mk("jk","sick",W(-3,1),W(-3,1),"approved"),
+    mk("jk","vacation",W(-2,4),W(-2,4),"approved","PM","Booked by HR"),
+    mk("jk","vacation",W(2,0),W(2,4),"pending_manager",null,"Family visit"),
+    mk("ms","vacation",W(-12,0),W(-11,4),"approved"),
+    mk("ms","vacation",W(5,0),W(6,4),"approved"),
+    mk("ab","vacation",W(1,0),W(1,4),"approved"),
+    mk("ab","travel",W(0,2),W(0,3),"approved",null,"Conference, Munich"),
+    mk("lm","sick",W(0,0),W(0,1),"approved"),
+    mk("lm","vacation",W(3,0),W(3,4),"pending_ceo"),
+    mk("hw","vacation",W(-7,0),W(-6,4),"approved"),
+    mk("hw","vacation",W(4,0),W(4,4),"pending_ceo"),
+    mk("dn","vacation",W(-5,0),W(-5,4),"approved"),
+    mk("dn","travel",W(2,2),W(2,2),"approved","AM","Supplier visit"),
+    mk("pn","travel",W(0,1),W(0,4),"approved",null,"Client workshops, Paris"),
+    mk("pn","vacation",W(-9,0),W(-8,4),"approved"),
+    mk("ev","vacation",W(-11,0),W(-10,4),"approved"),
+    mk("ev","vacation",W(1,3),W(1,4),"approved"),
+    mk("tr","vacation",W(-6,0),W(-6,4),"approved"),
+    mk("ab","vacation",W(-4,2),W(-4,4),"rejected",null,"Clashes with lab audit")
+  ];
+  const log = [
+    {ts:`${W(-1,1)} 09:12`, ch:"Email", text:"To Hannah Weiss: Jonas Keller requested 5 days of vacation, " + `${W(2,0)} to ${W(2,4)}.`},
+    {ts:`${W(-1,2)} 14:40`, ch:"Email", text:"To Tomás Ribeiro: Lucas Moreau's vacation was approved by Daniel Novak and needs your approval."},
+    {ts:`${W(0,0)} 08:05`, ch:"Email", text:"To Daniel Novak and Elena Varga: Lucas Moreau logged sick leave, " + `${W(0,0)} to ${W(0,1)}.`}
+  ].reverse();
+  return {people, requests, log, nextId:id+1};
+}
+
+/* ---------- State ---------- */
+let S = Object.assign(seed(), {me:"jk", tab:"mine", calMonth:TODAY.slice(0,7), modal:null});
+const P = id => S.people.find(p => p.id===id);
+const hr = () => S.people.find(p => p.isAdmin);
+const ceo = () => S.people.find(p => p.isCEO);
+const TYPES = {
+  vacation:{label:"Vacation", color:"var(--vac)"},
+  sick:{label:"Sick leave", color:"var(--sick)"},
+  travel:{label:"Work travel (off-site)", color:"var(--trav)"}
+};
+const live = r => r.status!=="rejected" && r.status!=="cancelled";
+const isPending = r => r.status==="pending_manager" || r.status==="pending_ceo";
+const isApprover = p => p.isCEO || S.people.some(x => x.managerId===p.id);
+const pendingFor = p => S.requests.filter(r =>
+  (r.status==="pending_manager" && P(r.personId).managerId===p.id) ||
+  (r.status==="pending_ceo" && p.isCEO));
+const rangeText = r => r.half ? `${r.start}, ${r.half==="AM"?"morning":"afternoon"}` :
+  (r.start===r.end ? r.start : `${r.start} to ${r.end}`);
+const stamp = () => { const d=new Date(); return `${TODAY} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const notify = (ch,text) => S.log.unshift({ts:stamp(), ch, text});
+
+/* ---------- Balance logic ---------- */
+function entitlement(p, y=YEAR){
+  const ys=D(`${y}-01-01`), ye=D(`${y}-12-31`);
+  const s=Math.max(ys, D(p.hireDate)), e=Math.min(ye, p.departureDate ? D(p.departureDate) : ye);
+  if(e < s) return 0;
+  return roundHalfUp(p.allowance * ((e-s)/864e5 + 1) / ((ye-ys)/864e5 + 1));
+}
+function balance(p, y=YEAR){
+  const mine = S.requests.filter(r => r.personId===p.id && r.type==="vacation" && +r.start.slice(0,4)===y);
+  const used = mine.filter(r => r.status==="approved").reduce((a,r)=>a+r.days,0);
+  const pending = mine.filter(isPending).reduce((a,r)=>a+r.days,0);
+  const entitled = entitlement(p,y);
+  const total = entitled + p.carried + p.adjust;
+  const remaining = total - used;
+  return {entitled, carried:p.carried, adjust:p.adjust, total, used, pending, remaining, available: remaining - pending};
+}
+
+/* ---------- Rendering ---------- */
+const app = document.getElementById("app");
+
+function render(){
+  const me = P(S.me);
+  const tabs = [["mine","My time off"],["team","Team calendar"]];
+  if(isApprover(me)) tabs.push(["approvals","Approvals"]);
+  if(me.isAdmin) tabs.push(["admin","People and balances"]);
+  tabs.push(["activity","Notifications"]);
+  if(!tabs.some(t => t[0]===S.tab)) S.tab = "mine";
+  const waiting = pendingFor(me).length;
+
+  const views = {mine:viewMine, team:viewTeam, approvals:viewApprovals, admin:viewAdmin, activity:viewActivity};
+  app.innerHTML = `
+  <header class="top"><div class="wrap">
+    <div class="brand"><span class="mark" aria-hidden="true">${"<i></i>".repeat(9)}</span>${esc(CONFIG.product)}</div>
+    <span class="co">${esc(CONFIG.company)}</span>
+    <span class="demo-chip">Demo with fictional data. Reload to reset.</span>
+    <label class="persona">Viewing as
+      <select data-act="persona">
+        ${S.people.map(p => `<option value="${p.id}" ${p.id===S.me?"selected":""}>${esc(p.name)}, ${esc(p.title)}${p.isAdmin?" (admin)":""}</option>`).join("")}
+      </select>
+    </label>
+  </div></header>
+  <div class="wrap">
+    <nav class="tabs" role="tablist">
+      ${tabs.map(([k,l]) => `<button class="tab" role="tab" data-act="tab" data-k="${k}" aria-selected="${S.tab===k}">${l}${k==="approvals"&&waiting?`<span class="badge">${waiting}</span>`:""}</button>`).join("")}
+    </nav>
+    <main>${views[S.tab](me)}</main>
+    <footer>
+      <div class="made"><span class="mark" aria-hidden="true">${"<i></i>".repeat(9)}</span>${esc(CONFIG.consultancy)} <span>${esc(CONFIG.tagline)}</span></div>
+      ${esc(CONFIG.product)} runs on Microsoft 365: sign-in with Microsoft accounts, data in SharePoint lists, notifications through Outlook or Teams.
+      Designed and built by ${esc(CONFIG.builtBy)}. Want software that fits the way your team works? <a href="mailto:${esc(CONFIG.contact)}">${esc(CONFIG.contact)}</a>
+    </footer>
+  </div>
+  ${S.modal ? modalHtml(me) : ""}`;
+  if(S.modal) { syncModal(); const f = app.querySelector(".modal select, .modal input"); f && f.focus(); }
+}
+
+function trail(r){
+  if(r.type!=="vacation" || r.status==="rejected" || r.status==="cancelled") return "";
+  const p = P(r.personId), mgr = P(p.managerId);
+  if(p.isCEO) return "";
+  const steps = [];
+  if(mgr && !mgr.isCEO) steps.push(["Manager", r.status==="pending_manager" ? "now" : "done"]);
+  steps.push(["CEO", r.status==="approved" ? "done" : (r.status==="pending_ceo" ? "now" : "")]);
+  return `<div class="trail">${steps.map((s,i)=>`${i?'<span class="bar"></span>':""}<span class="dot ${s[1]}"></span>${s[0]}`).join("")}</div>`;
+}
+function statusHtml(r){
+  const map = {pending_manager:["pending","Waiting for manager"], pending_ceo:["pending","Waiting for CEO"],
+    approved:["approved", r.type==="vacation"?"Approved":"Logged"], rejected:["rejected","Rejected"], cancelled:["cancelled","Cancelled"]};
+  const [c,l] = map[r.status];
+  return `<span class="status ${c}">${l}</span>`;
+}
+function canCancel(me,r){
+  if(!live(r)) return false;
+  if(me.isAdmin) return true;
+  if(r.personId!==me.id) return false;
+  if(r.type==="sick") return false;
+  return isPending(r) || r.start > TODAY;
+}
+function reqRow(r, me, showName=false){
+  const p = P(r.personId);
+  return `<div class="req">
+    <span class="strip" style="background:${TYPES[r.type].color}"></span>
+    <div>
+      <div class="t">${showName?esc(p.name)+", ":""}${TYPES[r.type].label}, ${fmtDays(r.days)}</div>
+      <div class="m">${rangeText(r)}${r.note?`. ${esc(r.note)}`:""}</div>
+      ${trail(r)}
+    </div>
+    <div class="row" style="justify-content:flex-end">
+      ${statusHtml(r)}
+      ${canCancel(me,r)?`<button class="btn small" data-act="cancel" data-id="${r.id}">Cancel</button>`:""}
+    </div>
+  </div>`;
+}
+
+function viewMine(me){
+  const b = balance(me);
+  const tot = Math.max(b.total, b.used + b.pending, 1);
+  const pct = n => Math.max(0, n/tot*100).toFixed(2) + "%";
+  const mine = S.requests.filter(r => r.personId===me.id).sort((a,c)=>c.start.localeCompare(a.start));
+  const upcoming = mine.filter(r => r.end >= TODAY && live(r)).sort((a,c)=>a.start.localeCompare(c.start));
+  const past = mine.filter(r => !(r.end >= TODAY && live(r)));
+  return `
+  <div class="row" style="margin-bottom:18px">
+    <div><h1>Hello, ${esc(me.name.split(" ")[0])}</h1>
+    <p class="sub" style="margin:0">Book time off, follow approvals and check your balance for ${YEAR}.</p></div>
+    <span class="spacer"></span>
+    <button class="btn primary" data-act="new">Request time off</button>
+  </div>
+  <div class="grid-mine">
+    <section class="panel feature">
+      <h2>Vacation balance ${YEAR}</h2>
+      <div class="big">${+b.available.toFixed(1)}<small>days available</small></div>
+      <div class="ledger-bar" role="img" aria-label="${b.used} used, ${b.pending} pending, ${b.available} available">
+        <span class="seg-used" style="width:${pct(b.used)}"></span>
+        <span class="seg-pend" style="width:${pct(b.pending)}"></span>
+      </div>
+      <div class="ledger-key"><span><i style="background:var(--berry)"></i>Used ${b.used}</span><span><i class="seg-pend" style="background:repeating-linear-gradient(135deg,var(--berry) 0 3px,transparent 3px 6px)"></i>Pending ${b.pending}</span><span><i style="background:var(--warm);box-shadow:inset 0 0 0 1px rgba(39,35,52,.3)"></i>Available ${+b.available.toFixed(1)}</span></div>
+      <ul class="lines">
+        <li><span>Entitlement${b.entitled<me.allowance?" (pro rata)":""}</span><b>${b.entitled}</b></li>
+        <li><span>Carried over from ${YEAR-1}</span><b>${b.carried}</b></li>
+        ${b.adjust?`<li><span>Adjustments</span><b>${b.adjust>0?"+":""}${b.adjust}</b></li>`:""}
+        <li><span>Taken</span><b>−${b.used}</b></li>
+        <li><span>Awaiting approval</span><b>−${b.pending}</b></li>
+        <li class="total"><span>Available to book</span><span>${+b.available.toFixed(1)}</span></li>
+      </ul>
+      ${me.departureDate?`<p class="note">Your last working day is ${me.departureDate}. Entitlement is calculated up to that date.</p>`:""}
+    </section>
+    <section class="panel">
+      <h2>Your requests</h2>
+      <div class="group-label">Upcoming</div>
+      ${upcoming.length ? upcoming.map(r=>reqRow(r,me)).join("") : `<div class="empty">Nothing booked yet. Use "Request time off" to plan your next break.</div>`}
+      ${past.length?`<div class="group-label">Past and closed</div>${past.map(r=>reqRow(r,me)).join("")}`:""}
+    </section>
+  </div>`;
+}
+
+function viewTeam(me){
+  const [y,m] = S.calMonth.split("-").map(Number);
+  const first = `${y}-${pad(m)}-01`;
+  const days = new Date(Date.UTC(y,m,0)).getUTCDate();
+  const dates = Array.from({length:days},(_,i)=>addDays(first,i));
+  const monthName = new Date(D(first)).toLocaleString("en-GB",{month:"long",year:"numeric",timeZone:"UTC"});
+  const order = [...S.people].sort((a,b)=>(a.id===S.me?-1:b.id===S.me?1:0) || a.name.localeCompare(b.name));
+  const offToday = S.requests.filter(r => live(r) && r.start<=TODAY && r.end>=TODAY && isWorkday(TODAY));
+
+  const cell = (p, s) => {
+    const cls = [isWeekend(s)?"we":"", holidayName(s)?"hol":""].join(" ");
+    if(!isWorkday(s)) return `<td class="d ${cls}" title="${esc(holidayName(s)||"Weekend")}"></td>`;
+    const r = S.requests.find(r => r.personId===p.id && live(r) && r.start<=s && r.end>=s);
+    if(!r) return `<td class="d ${cls}"></td>`;
+    const c = TYPES[r.type].color;
+    let bg = isPending(r) ? `repeating-linear-gradient(135deg,${c} 0 3px,transparent 3px 7px)` : c;
+    if(r.half) bg = `linear-gradient(90deg,${r.half==="AM"?c+" 50%,transparent 50%":"transparent 50%,"+c+" 50%"})`;
+    let prev = addDays(s,-1); while(!isWorkday(prev) && prev>=r.start) prev = addDays(prev,-1);
+    let next = addDays(s,1); while(!isWorkday(next) && next<=r.end) next = addDays(next,1);
+    const st = prev < r.start ? "start" : "", en = next > r.end ? "end" : "";
+    const tip = `${p.name}: ${TYPES[r.type].label}, ${rangeText(r)}${isPending(r)?" (pending)":""}`;
+    return `<td class="d ${cls}" title="${esc(tip)}"><span class="blk ${st} ${en}" style="background:${bg};${isPending(r)?`box-shadow:inset 0 0 0 1px ${c}`:""}"></span></td>`;
+  };
+
+  return `
+  <h1>Team calendar</h1>
+  <p class="sub">Who is away, when. Luxembourg public holidays are built in, so working days are counted correctly.</p>
+  <div class="offnow">
+    <span class="chip" style="border-style:dashed">Away today: ${offToday.length||"nobody"}</span>
+    ${offToday.map(r=>`<span class="chip"><i style="background:${TYPES[r.type].color}"></i>${esc(P(r.personId).name)}, ${TYPES[r.type].label.toLowerCase()}</span>`).join("")}
+  </div>
+  <div class="cal-head">
+    <button class="btn small" data-act="month" data-d="-1" aria-label="Previous month">‹</button>
+    <span class="month">${monthName}</span>
+    <button class="btn small" data-act="month" data-d="1" aria-label="Next month">›</button>
+    <button class="btn small" data-act="month" data-d="0">This month</button>
+  </div>
+  <div class="cal-scroll">
+    <table class="cal">
+      <thead><tr><th class="who">Person</th>
+        ${dates.map(s=>`<th class="${isWeekend(s)?"we":""} ${holidayName(s)?"hol":""} ${s===TODAY?"today":""}" title="${esc(holidayName(s)||"")}">${"SMTWTFS"[dow(s)]}<span class="dn">${+s.slice(8)}</span></th>`).join("")}
+      </tr></thead>
+      <tbody>
+        ${order.map(p=>`<tr class="${p.id===S.me?"me":""}"><th class="who" scope="row"><div class="n">${esc(p.name)}</div><div class="r">${esc(p.title)}</div></th>${dates.map(s=>cell(p,s)).join("")}</tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--vac)"></i>Vacation</span>
+    <span><i style="background:var(--sick)"></i>Sick leave</span>
+    <span><i style="background:var(--trav)"></i>Work travel</span>
+    <span><i style="background:repeating-linear-gradient(135deg,var(--vac) 0 3px,transparent 3px 7px);box-shadow:inset 0 0 0 1px var(--vac)"></i>Awaiting approval</span>
+    <span><i style="background:linear-gradient(90deg,var(--vac) 50%,transparent 50%);box-shadow:inset 0 0 0 1px var(--line)"></i>Half day</span>
+    <span><i style="background:var(--hol)"></i>Public holiday or weekend</span>
+  </div>`;
+}
+
+function viewApprovals(me){
+  const list = pendingFor(me).sort((a,b)=>a.start.localeCompare(b.start));
+  const rows = list.map(r=>{
+    const p = P(r.personId), b = balance(p);
+    const after = b.available; // pending already deducted
+    const overlap = S.requests.filter(x => x.id!==r.id && live(x) && x.personId!==p.id && P(x.personId).managerId===p.managerId && x.start<=r.end && x.end>=r.start);
+    return `<div class="appr">
+      <div>
+        <div class="t" style="font-weight:600">${esc(p.name)} requests ${fmtDays(r.days)} of vacation</div>
+        <div class="ctx">${rangeText(r)}${r.note?`. "${esc(r.note)}"`:""}</div>
+        <div class="ctx">Balance if all pending requests are approved: <b>${+after.toFixed(1)} days</b>${after<0?` <span class="warnline">(over balance)</span>`:""}
+        ${r.status==="pending_ceo" && P(p.managerId) && !P(p.managerId).isCEO ? `. Approved by ${esc(P(p.managerId).name)}.`:""}</div>
+        ${overlap.length?`<div class="ctx">Also away in this period: ${overlap.map(x=>esc(P(x.personId).name)).join(", ")}</div>`:""}
+      </div>
+      <div class="row">
+        <button class="btn small danger" data-act="reject" data-id="${r.id}">Reject</button>
+        <button class="btn small primary" data-act="approve" data-id="${r.id}">Approve</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `
+  <h1>Approvals</h1>
+  <p class="sub">Vacation goes through two steps: the line manager, then the CEO. Sick leave and work travel are logged without approval.</p>
+  <section class="panel">${rows || `<div class="empty">Nothing waiting for you. New requests from your team appear here and by email.</div>`}</section>`;
+}
+
+function viewAdmin(me){
+  const rows = [...S.people].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{
+    const b = balance(p);
+    let settle = "";
+    if(p.departureDate){
+      const v = b.remaining;
+      settle = v>=0 ? `<span class="settle pay">Pay ${+v.toFixed(1)}</span>` : `<span class="settle owe">Deduct ${+(-v).toFixed(1)}</span>`;
+    }
+    return `<tr>
+      <td><b>${esc(p.name)}</b><div class="hint">${esc(p.title)}${p.managerId?`, reports to ${esc(P(p.managerId).name)}`:""}</div></td>
+      <td>${p.hireDate}</td>
+      <td><input type="date" value="${p.departureDate}" data-act="dep" data-id="${p.id}" aria-label="Last working day for ${esc(p.name)}"></td>
+      <td class="num">${b.entitled}</td>
+      <td class="num">${p.carried}</td>
+      <td class="num"><input type="number" step="0.5" value="${p.adjust}" data-act="adj" data-id="${p.id}" aria-label="Adjustment for ${esc(p.name)}"></td>
+      <td class="num">${b.used}</td>
+      <td class="num">${b.pending}</td>
+      <td class="num"><b>${+b.remaining.toFixed(1)}</b></td>
+      <td>${settle}</td>
+    </tr>`;
+  }).join("");
+  return `
+  <div class="row" style="margin-bottom:6px">
+    <div><h1>People and balances</h1>
+    <p class="sub" style="margin:0">Entitlements are pro rata from hire date and to the last working day, rounded up to the nearest half day.</p></div>
+    <span class="spacer"></span>
+    <button class="btn primary" data-act="bulk">Book for several people</button>
+  </div>
+  <section class="panel" style="margin-top:16px">
+    <div class="tbl-scroll"><table class="tbl">
+      <thead><tr><th>Person</th><th>Hired</th><th>Last working day</th><th class="num">Entitled ${YEAR}</th><th class="num">Carried</th><th class="num">Adjust</th><th class="num">Taken</th><th class="num">Pending</th><th class="num">Remaining</th><th>Settlement</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <p class="note">Set a last working day to see the final settlement: pro rata entitlement plus carry-over and adjustments, minus days taken. A positive figure is paid out with the final salary. A negative figure is deducted.</p>
+  </section>`;
+}
+
+function viewActivity(){
+  return `
+  <h1>Notifications</h1>
+  <p class="sub">Messages the app sends at each step. In production these go out by Outlook email or Teams, so nobody has to remember to chase.</p>
+  <section class="panel">
+    <ul class="log">${S.log.map(l=>`<li><span class="ts">${esc(l.ts)}</span><span class="ch">${esc(l.ch)}</span><span>${esc(l.text)}</span></li>`).join("") || `<li>No messages yet.</li>`}</ul>
+  </section>`;
+}
+
+/* ---------- Modals ---------- */
+function canHalf(me,type){ return me.isAdmin || type==="travel"; }
+
+function modalHtml(me){
+  if(S.modal==="new"){
+    return `<div class="scrim" data-act="close-scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt" id="m-new">
+      <h2 id="mt">Request time off</h2>
+      <div class="field"><label for="f-type">Type</label>
+        <select id="f-type">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join("")}</select></div>
+      <div class="field" id="f-dur-wrap"><span class="lbl">Duration</span>
+        <span class="seg"><button type="button" data-dur="full" aria-pressed="true">Full days</button><button type="button" data-dur="half" aria-pressed="false">Half day</button></span>
+        <span class="hint" id="f-half-note"></span></div>
+      <div class="two">
+        <div class="field"><label for="f-start" id="f-start-l">First day</label><input type="date" id="f-start" value="${W(1,0)}"></div>
+        <div class="field" id="f-end-wrap"><label for="f-end">Last day</label><input type="date" id="f-end" value="${W(1,4)}"></div>
+        <div class="field hidden" id="f-ampm-wrap"><label for="f-ampm">Part of day</label>
+          <select id="f-ampm"><option value="AM">Morning</option><option value="PM">Afternoon</option></select></div>
+      </div>
+      <div class="field"><label for="f-note">Note (optional)</label><input id="f-note" placeholder="Visible to your approvers"></div>
+      <div class="preview" id="f-preview"></div>
+      <div class="row"><span class="spacer"></span><button class="btn" data-act="close">Close</button><button class="btn primary" data-act="submit" id="f-submit">Send request</button></div>
+    </div></div>`;
+  }
+  if(S.modal==="bulk"){
+    const y = TODAY > `${YEAR}-12-24` ? YEAR+1 : YEAR;
+    const augMon = (()=>{ let s=`${TODAY>`${YEAR}-08-14`?YEAR+1:YEAR}-08-01`; while(dow(s)!==1) s=addDays(s,1); return s; })();
+    return `<div class="scrim" data-act="close-scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mb" id="m-bulk">
+      <h2 id="mb">Book for several people</h2>
+      <p class="hint" style="margin-top:-6px">For company closures or team days. Bookings are approved straight away and deducted from each balance.</p>
+      <div class="field"><label for="b-preset">Preset</label>
+        <select id="b-preset">
+          <option value="">Custom dates</option>
+          <option value="xmas" selected data-s="${y}-12-24" data-e="${y}-12-31">Christmas closure ${y}</option>
+          <option value="summer" data-s="${augMon}" data-e="${addDays(augMon,11)}">Summer break ${augMon.slice(0,4)}</option>
+        </select></div>
+      <div class="field"><span class="lbl">Booking mode</span>
+        <span class="seg"><button type="button" data-bdur="full" aria-pressed="true">Full days</button><button type="button" data-bdur="half" aria-pressed="false">Half day</button></span></div>
+      <div class="two">
+        <div class="field"><label for="b-start" id="b-start-l">First day</label><input type="date" id="b-start" value="${y}-12-24"></div>
+        <div class="field" id="b-end-wrap"><label for="b-end">Last day</label><input type="date" id="b-end" value="${y}-12-31"></div>
+        <div class="field hidden" id="b-ampm-wrap"><label for="b-ampm">Part of day</label>
+          <select id="b-ampm"><option value="AM">Morning</option><option value="PM">Afternoon</option></select></div>
+      </div>
+      <div class="field"><label for="b-comp">Compensation days to credit each person</label><input type="number" id="b-comp" min="0" step="0.5" value="0">
+        <span class="hint">Use this when the company gives back days for a closure.</span></div>
+      <div class="field"><span class="lbl">People</span>
+        <div class="people-pick">
+          <label><input type="checkbox" id="b-all" checked> Everyone</label>
+          ${S.people.map(p=>`<label><input type="checkbox" class="b-p" value="${p.id}" checked> ${esc(p.name)}</label>`).join("")}
+        </div></div>
+      <div class="preview" id="b-preview"></div>
+      <div class="row"><span class="spacer"></span><button class="btn" data-act="close">Close</button><button class="btn primary" data-act="bulk-submit" id="b-submit">Book</button></div>
+    </div></div>`;
+  }
+  return "";
+}
+
+const q = s => app.querySelector(s);
+const pressed = attr => q(`[${attr}][aria-pressed="true"]`)?.getAttribute(attr);
+
+function readNew(me){
+  const type = q("#f-type").value;
+  let half = pressed("data-dur")==="half";
+  if(half && !canHalf(me,type)){ half=false; setSeg("data-dur","full"); }
+  const start = q("#f-start").value, end = half ? start : q("#f-end").value;
+  const ampm = q("#f-ampm").value;
+  const days = half ? (isWorkday(start)?0.5:0) : (start&&end&&end>=start ? businessDays(start,end) : 0);
+  let err = "";
+  if(!start || (!half && !end)) err = "Choose your dates.";
+  else if(!half && end < start) err = "The last day is before the first day.";
+  else if(days===0) err = "These dates fall on weekends or public holidays. Nothing to book.";
+  else {
+    const clash = S.requests.find(r => r.personId===me.id && live(r) && r.start<=end && r.end>=start);
+    if(clash) err = `You already have ${TYPES[clash.type].label.toLowerCase()} booked on ${rangeText(clash)}.`;
+  }
+  const b = balance(me);
+  let after = null;
+  if(!err && type==="vacation"){
+    after = b.available - days;
+    if(after < 0 && !me.isAdmin) err = `This is ${fmtDays(-after)} more than you have available (${b.available}).`;
+  }
+  return {type, half, start, end, ampm, days, err, after, note:q("#f-note").value.trim()};
+}
+function setSeg(attr,val){ app.querySelectorAll(`[${attr}]`).forEach(b=>b.setAttribute("aria-pressed", String(b.getAttribute(attr)===val))); }
+
+function syncModal(){
+  const me = P(S.me);
+  if(S.modal==="new"){
+    const type = q("#f-type").value, allowed = canHalf(me,type);
+    q("#f-dur-wrap").querySelector('[data-dur="half"]').disabled = !allowed;
+    q("#f-half-note").textContent = allowed ? "" : "Half days for this type are booked by HR. Work travel can be booked as a half day by anyone.";
+    const f = readNew(me);
+    q("#f-end-wrap").classList.toggle("hidden", f.half);
+    q("#f-ampm-wrap").classList.toggle("hidden", !f.half);
+    q("#f-start-l").textContent = f.half ? "Date" : "First day";
+    let msg;
+    if(f.err) msg = `<span class="err">${esc(f.err)}</span>`;
+    else if(type==="vacation"){
+      const mgr = P(me.managerId);
+      const flow = me.isCEO ? "Approved automatically." : (mgr && !mgr.isCEO ? `Goes to ${esc(mgr.name)}, then ${esc(ceo().name)}.` : `Goes to ${esc(ceo().name)}.`);
+      msg = `<b>${fmtDays(f.days)}</b> of vacation. Balance after approval: <b>${+f.after.toFixed(1)}</b>. ${flow}${f.after<0?` <span class="err">Admin override: balance goes negative.</span>`:""}`;
+    } else if(type==="sick") msg = `<b>${fmtDays(f.days)}</b> of sick leave. No approval needed. Your manager and HR are notified.`;
+    else msg = `<b>${fmtDays(f.days)}</b> of work travel. Logged straight away. No approval and no effect on your balance.`;
+    q("#f-preview").innerHTML = msg;
+    q("#f-submit").disabled = !!f.err;
+    q("#f-submit").textContent = type==="vacation" && !me.isCEO ? "Send for approval" : "Log it";
+  }
+  if(S.modal==="bulk"){
+    const half = pressed("data-bdur")==="half";
+    q("#b-end-wrap").classList.toggle("hidden", half);
+    q("#b-ampm-wrap").classList.toggle("hidden", !half);
+    q("#b-start-l").textContent = half ? "Date" : "First day";
+    q("#b-preset").disabled = half;
+    const ids = [...app.querySelectorAll(".b-p:checked")].map(i=>i.value);
+    q("#b-all").checked = ids.length===S.people.length;
+    const start = q("#b-start").value, end = half ? start : q("#b-end").value;
+    const days = half ? (isWorkday(start)?0.5:0) : (end>=start ? businessDays(start,end) : 0);
+    const comp = +q("#b-comp").value || 0;
+    let msg, ok = false;
+    if(!ids.length) msg = `<span class="err">Select at least one person.</span>`;
+    else if(!days) msg = `<span class="err">No working days in this range.</span>`;
+    else {
+      const clashes = ids.filter(id => blocked(id,start,end));
+      ok = true;
+      msg = `Books <b>${fmtDays(days)}</b> of vacation for <b>${ids.length} ${ids.length===1?"person":"people"}</b>${comp?`, and credits ${fmtDays(comp)} back to each`:""}.`;
+      if(clashes.length) msg += ` <span class="hint">Skipped because they already have time off then or have left: ${clashes.map(id=>esc(P(id).name)).join(", ")}.</span>`;
+      if(clashes.length===ids.length){ ok=false; }
+    }
+    q("#b-preview").innerHTML = msg;
+    q("#b-submit").disabled = !ok;
+  }
+}
+
+/* ---------- Actions ---------- */
+function toast(t){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement("div"); el.className="toast"; el.setAttribute("role","status"); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+
+function submitNew(){
+  const me = P(S.me), f = readNew(me);
+  if(f.err) return;
+  const r = {id:S.nextId++, personId:me.id, type:f.type, start:f.start, end:f.end, half:f.half?f.ampm:null, days:f.days, note:f.note, created:TODAY, status:"approved"};
+  const mgr = P(me.managerId), H = hr();
+  if(f.type==="vacation"){
+    if(me.isCEO){ notify("Email", `To ${H.name}: ${me.name} booked ${fmtDays(r.days)} of vacation, ${rangeText(r)}.`); }
+    else if(mgr && !mgr.isCEO){ r.status="pending_manager"; notify("Email", `To ${mgr.name}: ${me.name} requested ${fmtDays(r.days)} of vacation, ${rangeText(r)}. Approve or reject in ${CONFIG.product}.`); }
+    else { r.status="pending_ceo"; notify("Email", `To ${ceo().name}: ${me.name} requested ${fmtDays(r.days)} of vacation, ${rangeText(r)}.`); }
+  } else if(f.type==="sick"){
+    notify("Email", `To ${mgr?mgr.name+" and ":""}${H.name}: ${me.name} logged sick leave, ${rangeText(r)}.`);
+  } else {
+    notify("Logged", `${me.name} logged work travel, ${rangeText(r)}. No message sent.`);
+  }
+  S.requests.push(r); S.modal=null; render();
+  toast(r.status==="approved" ? "Logged" : "Request sent for approval");
+}
+const blocked = (id,start,end) => (P(id).departureDate && P(id).departureDate < start) ||
+  S.requests.some(r => r.personId===id && live(r) && r.start<=end && r.end>=start);
+function submitBulk(){
+  const me = P(S.me);
+  const half = pressed("data-bdur")==="half";
+  const start = q("#b-start").value, end = half ? start : q("#b-end").value;
+  const days = half ? 0.5 : businessDays(start,end);
+  const comp = +q("#b-comp").value || 0;
+  const preset = q("#b-preset").selectedOptions[0];
+  const ids = [...app.querySelectorAll(".b-p:checked")].map(i=>i.value)
+    .filter(id => !blocked(id,start,end));
+  ids.forEach(id => {
+    S.requests.push({id:S.nextId++, personId:id, type:"vacation", start, end, half:half?q("#b-ampm").value:null, days, status:"approved",
+      note: preset.value ? preset.textContent : `Booked by ${me.name}`, created:TODAY});
+    if(comp) P(id).adjust += comp;
+  });
+  notify("Email", `To ${ids.length} people: ${preset.value?preset.textContent:"Time off"} booked for you, ${half?start:`${start} to ${end}`}${comp?`. ${fmtDays(comp)} credited back to your balance`:""}.`);
+  S.modal=null; render(); toast(`Booked for ${ids.length} ${ids.length===1?"person":"people"}`);
+}
+function decide(id, ok){
+  const r = S.requests.find(x=>x.id===id), p = P(r.personId), me = P(S.me);
+  if(!ok){ r.status="rejected"; notify("Email", `To ${p.name}: your vacation request for ${rangeText(r)} was rejected by ${me.name}.`); toast("Rejected"); }
+  else if(r.status==="pending_manager"){ r.status="pending_ceo"; notify("Email", `To ${ceo().name}: ${p.name}'s vacation (${rangeText(r)}) was approved by ${me.name} and needs your approval.`); toast("Approved. Sent to the CEO."); }
+  else { r.status="approved"; notify("Email", `To ${p.name}, copy ${hr().name}: your vacation for ${rangeText(r)} is approved. Remember to set your out-of-office.`); toast("Approved"); }
+  render();
+}
+function cancelReq(id){
+  const r = S.requests.find(x=>x.id===id), p = P(r.personId), me = P(S.me);
+  r.status = "cancelled";
+  notify("Email", `${me.id===p.id?`${p.name} cancelled`:`${me.name} cancelled ${p.name}'s`} ${TYPES[r.type].label.toLowerCase()}, ${rangeText(r)}. Days returned to the balance.`);
+  render(); toast("Cancelled");
+}
+
+document.addEventListener("click", e => {
+  const seg = e.target.closest("[data-dur],[data-bdur]");
+  if(seg && !seg.disabled){ const a = seg.hasAttribute("data-dur")?"data-dur":"data-bdur"; setSeg(a, seg.getAttribute(a)); syncModal(); return; }
+  const el = e.target.closest("[data-act]");
+  if(!el) return;
+  const act = el.dataset.act;
+  if(act==="close-scrim"){ if(e.target===el){ S.modal=null; render(); } return; }
+  if(act==="tab"){ S.tab = el.dataset.k; render(); }
+  if(act==="new"){ S.modal="new"; render(); }
+  if(act==="bulk"){ S.modal="bulk"; render(); }
+  if(act==="close"){ S.modal=null; render(); }
+  if(act==="submit") submitNew();
+  if(act==="bulk-submit") submitBulk();
+  if(act==="approve") decide(+el.dataset.id, true);
+  if(act==="reject") decide(+el.dataset.id, false);
+  if(act==="cancel") cancelReq(+el.dataset.id);
+  if(act==="month"){
+    const d = +el.dataset.d;
+    if(d===0) S.calMonth = TODAY.slice(0,7);
+    else { const [y,m] = S.calMonth.split("-").map(Number); const t = new Date(Date.UTC(y,m-1+d,1)); S.calMonth = `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; }
+    render();
+  }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if(el.dataset.act==="persona"){ S.me = el.value; S.modal=null; render(); toast(`Now viewing as ${P(S.me).name}`); return; }
+  if(el.dataset.act==="dep"){ P(el.dataset.id).departureDate = el.value; render(); return; }
+  if(el.dataset.act==="adj"){ P(el.dataset.id).adjust = +el.value || 0; render(); return; }
+  if(el.id==="b-preset" && el.value){ const o = el.selectedOptions[0]; q("#b-start").value = o.dataset.s; q("#b-end").value = o.dataset.e; }
+  if(el.id==="b-all"){ app.querySelectorAll(".b-p").forEach(c=>c.checked = el.checked); }
+  if(S.modal) syncModal();
+});
+document.addEventListener("input", e => { if(S.modal && e.target.closest(".modal")) syncModal(); });
+document.addEventListener("keydown", e => { if(e.key==="Escape" && S.modal){ S.modal=null; render(); } });
+
+render();
+</script>
+</body>
+</html>
