@@ -37,10 +37,10 @@ body{
 }
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
 
 /* Top bar */
-.top{background:var(--ink-c);color:var(--warm)}
+.top{background:var(--ink-c);color:var(--warm);position:sticky;top:0;z-index:5}
 .top .wrap{display:flex;align-items:center;gap:16px;min-height:64px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.01em}
 .mark{width:28px;height:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
@@ -121,12 +121,13 @@ h2{font-size:17px;margin:0 0 12px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 .chip i{width:8px;height:8px;border-radius:50%}
 .cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
-table.cal{border-collapse:separate;border-spacing:0;min-width:100%}
+table.cal{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:860px}
 .cal th,.cal td{padding:0}
-.cal thead th{font-size:11.5px;font-weight:500;color:var(--muted);text-align:center;height:44px;border-bottom:1px solid var(--line);min-width:30px}
+.cal thead th{font-size:11.5px;font-weight:500;color:var(--muted);text-align:center;height:44px;border-bottom:1px solid var(--line)}
+.cal thead th.who{width:180px}
 .cal thead th .dn{display:block;font-size:13px;color:var(--ink);font-weight:600}
 .cal thead th.today .dn{background:var(--orange);color:var(--ink-c);border-radius:5px;margin:0 3px}
-.cal .who{position:sticky;left:0;background:var(--surface);text-align:left;padding:0 14px;min-width:190px;max-width:220px;border-right:1px solid var(--line);z-index:1}
+.cal .who{position:sticky;left:0;background:var(--surface);text-align:left;padding:0 12px;border-right:1px solid var(--line);z-index:1}
 .cal tbody .who{height:40px;border-bottom:1px solid var(--line)}
 .cal .who .n{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal .who .r{font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -193,11 +194,100 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink-c);color:var(--warm);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;max-width:90vw}
 
+
+/* Shared pieces used by the phone layout */
+.tab svg{display:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.tab .short{display:none}
+.agenda,.pcards{display:none}
+.ag-item{display:grid;grid-template-columns:6px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ag-item:last-child{border-bottom:0}
+.ag-item .strip{border-radius:3px}
+.ag-item .t{font-weight:600}
+.ag-item .m{font-size:13.5px;color:var(--muted)}
+.pcard{padding:14px 0;border-bottom:1px solid var(--line)}
+.pcard:last-child{border-bottom:0}
+.pcard .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:10px 0;text-align:center}
+.pcard .stats div{background:var(--paper);border-radius:6px;padding:6px 2px}
+.pcard .stats b{display:block;font-size:16px}
+.pcard .stats span{font-size:11px;color:var(--muted)}
+.pcard .edit{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:end}
+.pcard label{font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.pcard input{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:8px;width:100%;min-width:0}
+.two>*{min-width:0}
+.field input{min-width:0}
+
+/* Laptop and tablet */
+@media (max-width:1100px){
+  .cal thead th.who{width:150px}
+  table.cal{min-width:0}
+}
+
+/* Phone and small tablet: list views instead of wide tables */
+@media (max-width:720px){
+  .cal-scroll,.legend,.tbl-scroll{display:none}
+  .agenda,.pcards{display:block}
+}
+
+/* Phone */
+@media (max-width:640px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px !important}
+  .wrap{padding:0 16px}
+  .top .wrap{gap:8px 12px;min-height:0;padding-top:10px;padding-bottom:10px}
+  .co{display:none}
+  .demo-chip{margin-left:auto;font-size:11.5px}
+  .persona{width:100%;margin-left:0}
+  .persona select{flex:1;max-width:none;min-width:0;width:100%}
+
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--ink-c);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));gap:0;overflow:visible}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;border-radius:0;color:#CFC8D8;font-size:11.5px;position:relative}
+  .tab:hover{background:transparent;color:var(--warm)}
+  .tab[aria-selected="true"]{background:transparent;color:var(--warm);box-shadow:inset 0 3px 0 var(--orange)}
+  .tab svg{display:block}
+  .tab .long{display:none}
+  .tab .short{display:inline}
+  .tab .badge{position:absolute;top:3px;left:calc(50% + 6px);margin:0;min-width:18px;line-height:18px;font-size:11px}
+
+  main{padding:20px 0 24px}
+  footer{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  h1{font-size:28px}
+  .page-head .spacer{display:none}
+  .page-head .btn.primary{width:100%;padding:12px}
+  .panel{padding:16px}
+  .big{font-size:48px}
+
+  .req{grid-template-columns:6px 1fr;gap:4px 12px}
+  .req .strip{grid-row:span 2}
+  .req > .row{grid-column:2;justify-content:space-between !important}
+
+  .appr{grid-template-columns:1fr}
+  .appr .row{gap:8px}
+  .appr .row .btn{flex:1;padding:10px}
+
+  .cal-head .month{min-width:0;flex:1;font-size:18px}
+
+  .log li{grid-template-columns:auto 1fr;gap:4px 12px}
+  .log li>span:last-child{grid-column:1/-1}
+
+  .scrim{place-items:end center;padding:0}
+  .modal{width:100%;max-height:92vh;border-radius:16px 16px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+  .modal .row .spacer{display:none}
+  .modal .row .btn{flex:1;padding:12px}
+
+  .made{flex-wrap:wrap}
+  .made .tag{flex-basis:100%}
+}
+@media (max-width:380px){
+  .two{grid-template-columns:1fr}
+  .pcard .stats{grid-template-columns:repeat(3,1fr)}
+}
+
 footer{color:var(--muted);font-size:13px;padding:24px 0 40px;border-top:1px solid var(--line)}
 footer a{color:var(--ink);text-decoration-color:var(--orange);text-decoration-thickness:2px;text-underline-offset:3px}
 .made{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink);font-weight:700}
 .made .mark i:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(5)):not(:nth-child(6)):not(:nth-child(9)){background:var(--ink)}
-.made span{font-weight:400;color:var(--muted)}
+.made .tag{font-weight:400;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
 </style>
 </head>
@@ -346,13 +436,20 @@ function balance(p, y=YEAR){
 
 /* ---------- Rendering ---------- */
 const app = document.getElementById("app");
+const ICONS = {
+  mine:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  team:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  approvals:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>',
+  admin:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/>',
+  activity:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/>'
+};
 
 function render(){
   const me = P(S.me);
-  const tabs = [["mine","My time off"],["team","Team calendar"]];
-  if(isApprover(me)) tabs.push(["approvals","Approvals"]);
-  if(me.isAdmin) tabs.push(["admin","People and balances"]);
-  tabs.push(["activity","Notifications"]);
+  const tabs = [["mine","My time off","Me"],["team","Team calendar","Calendar"]];
+  if(isApprover(me)) tabs.push(["approvals","Approvals","Approvals"]);
+  if(me.isAdmin) tabs.push(["admin","People and balances","People"]);
+  tabs.push(["activity","Notifications","Alerts"]);
   if(!tabs.some(t => t[0]===S.tab)) S.tab = "mine";
   const waiting = pendingFor(me).length;
 
@@ -370,11 +467,11 @@ function render(){
   </div></header>
   <div class="wrap">
     <nav class="tabs" role="tablist">
-      ${tabs.map(([k,l]) => `<button class="tab" role="tab" data-act="tab" data-k="${k}" aria-selected="${S.tab===k}">${l}${k==="approvals"&&waiting?`<span class="badge">${waiting}</span>`:""}</button>`).join("")}
+      ${tabs.map(([k,l,sh]) => `<button class="tab" role="tab" data-act="tab" data-k="${k}" aria-selected="${S.tab===k}" aria-label="${l}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg><span class="long">${l}</span><span class="short">${sh}</span>${k==="approvals"&&waiting?`<span class="badge">${waiting}</span>`:""}</button>`).join("")}
     </nav>
     <main>${views[S.tab](me)}</main>
     <footer>
-      <div class="made"><span class="mark" aria-hidden="true">${"<i></i>".repeat(9)}</span>${esc(CONFIG.consultancy)} <span>${esc(CONFIG.tagline)}</span></div>
+      <div class="made"><span class="mark" aria-hidden="true">${"<i></i>".repeat(9)}</span>${esc(CONFIG.consultancy)} <span class="tag">${esc(CONFIG.tagline)}</span></div>
       ${esc(CONFIG.product)} runs on Microsoft 365: sign-in with Microsoft accounts, data in SharePoint lists, notifications through Outlook or Teams.
       Designed and built by ${esc(CONFIG.builtBy)}. Want software that fits the way your team works? <a href="mailto:${esc(CONFIG.contact)}">${esc(CONFIG.contact)}</a>
     </footer>
@@ -429,7 +526,7 @@ function viewMine(me){
   const upcoming = mine.filter(r => r.end >= TODAY && live(r)).sort((a,c)=>a.start.localeCompare(c.start));
   const past = mine.filter(r => !(r.end >= TODAY && live(r)));
   return `
-  <div class="row" style="margin-bottom:18px">
+  <div class="row page-head" style="margin-bottom:18px">
     <div><h1>Hello, ${esc(me.name.split(" ")[0])}</h1>
     <p class="sub" style="margin:0">Book time off, follow approvals and check your balance for ${YEAR}.</p></div>
     <span class="spacer"></span>
@@ -487,6 +584,16 @@ function viewTeam(me){
     return `<td class="d ${cls}" title="${esc(tip)}"><span class="blk ${st} ${en}" style="background:${bg};${isPending(r)?`box-shadow:inset 0 0 0 1px ${c}`:""}"></span></td>`;
   };
 
+  const last = dates[dates.length-1];
+  const inMonth = S.requests.filter(r => live(r) && r.start<=last && r.end>=first).sort((a,b)=>a.start.localeCompare(b.start));
+  const hols = dates.filter(holidayName).filter(s=>!isWeekend(s));
+  const agenda = `<section class="panel agenda">
+    ${hols.length?`<div class="hint" style="margin-bottom:8px">Public holidays: ${hols.map(s=>`${s} ${esc(holidayName(s))}`).join(", ")}</div>`:""}
+    ${inMonth.length ? inMonth.map(r=>`<div class="ag-item"><span class="strip" style="background:${isPending(r)?`repeating-linear-gradient(135deg,${TYPES[r.type].color} 0 3px,transparent 3px 7px)`:TYPES[r.type].color}"></span>
+      <div><div class="t">${esc(P(r.personId).name)}${r.personId===S.me?" (you)":""}</div>
+      <div class="m">${TYPES[r.type].label}, ${fmtDays(r.days)}. ${rangeText(r)}${isPending(r)?". Awaiting approval":""}</div></div></div>`).join("")
+      : `<div class="empty">Nobody is away this month.</div>`}
+  </section>`;
   return `
   <h1>Team calendar</h1>
   <p class="sub">Who is away, when. Luxembourg public holidays are built in, so working days are counted correctly.</p>
@@ -500,6 +607,7 @@ function viewTeam(me){
     <button class="btn small" data-act="month" data-d="1" aria-label="Next month">›</button>
     <button class="btn small" data-act="month" data-d="0">This month</button>
   </div>
+  ${agenda}
   <div class="cal-scroll">
     <table class="cal">
       <thead><tr><th class="who">Person</th>
@@ -567,8 +675,27 @@ function viewAdmin(me){
       <td>${settle}</td>
     </tr>`;
   }).join("");
+  const cards = [...S.people].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{
+    const b = balance(p);
+    const settle = p.departureDate ? (b.remaining>=0 ? `<span class="settle pay">Pay out ${+b.remaining.toFixed(1)} days at the end</span>` : `<span class="settle owe">Deduct ${+(-b.remaining).toFixed(1)} days at the end</span>`) : "";
+    return `<div class="pcard">
+      <div><b>${esc(p.name)}</b><div class="hint">${esc(p.title)}. Hired ${p.hireDate}</div></div>
+      <div class="stats">
+        <div><b>${b.entitled}</b><span>Entitled</span></div>
+        <div><b>${p.carried}</b><span>Carried</span></div>
+        <div><b>${b.used}</b><span>Taken</span></div>
+        <div><b>${b.pending}</b><span>Pending</span></div>
+        <div><b>${+b.remaining.toFixed(1)}</b><span>Left</span></div>
+      </div>
+      <div class="edit">
+        <label>Last working day<input type="date" value="${p.departureDate}" data-act="dep" data-id="${p.id}"></label>
+        <label>Adjust<input type="number" step="0.5" value="${p.adjust}" data-act="adj" data-id="${p.id}"></label>
+      </div>
+      ${settle?`<div style="margin-top:8px">${settle}</div>`:""}
+    </div>`;
+  }).join("");
   return `
-  <div class="row" style="margin-bottom:6px">
+  <div class="row page-head" style="margin-bottom:6px">
     <div><h1>People and balances</h1>
     <p class="sub" style="margin:0">Entitlements are pro rata from hire date and to the last working day, rounded up to the nearest half day.</p></div>
     <span class="spacer"></span>
@@ -579,6 +706,7 @@ function viewAdmin(me){
       <thead><tr><th>Person</th><th>Hired</th><th>Last working day</th><th class="num">Entitled ${YEAR}</th><th class="num">Carried</th><th class="num">Adjust</th><th class="num">Taken</th><th class="num">Pending</th><th class="num">Remaining</th><th>Settlement</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
+    <div class="pcards">${cards}</div>
     <p class="note">Set a last working day to see the final settlement: pro rata entitlement plus carry-over and adjustments, minus days taken. A positive figure is paid out with the final salary. A negative figure is deducted.</p>
   </section>`;
 }
