@@ -2,7 +2,7 @@
 
 Interactive demo of a time-off app built on Microsoft 365. All people and data are fictional.
 
-Open `index.html` in a browser, or enable GitHub Pages (Settings > Pages > Deploy from branch > main, root).
+Open `index.html` in a browser.
 
 ## Try this
 1. As Jonas Keller, click "Request time off" and send a vacation request.
