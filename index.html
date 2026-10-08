@@ -289,11 +289,279 @@ footer a{color:var(--ink);text-decoration-color:var(--orange);text-decoration-th
 .made .mark i:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(5)):not(:nth-child(6)):not(:nth-child(9)){background:var(--ink)}
 .made .tag{font-weight:400;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
+
+/* Language switch */
+.lang{display:inline-flex;border:1px solid #5A5370;border-radius:999px;overflow:hidden;flex:none}
+.lang button{background:transparent;border:0;color:#CFC8D8;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer;line-height:1.4}
+.lang button[aria-pressed="true"]{background:var(--orange);color:var(--ink-c)}
 </style>
 </head>
 <body>
 <div id="app"></div>
 
+<script>
+/* ============================================================
+   Language switch (English / Russian).
+   The app renders in English. In Russian mode every text, label
+   and message is translated on screen as it appears.
+   Add or fix translations in I18N_EXACT and I18N_RULES below.
+   ============================================================ */
+const I18N = (() => {
+  const KEY = "demo-lang";
+  let lang = "en";
+  try { lang = new URLSearchParams(location.search).get("lang") || localStorage.getItem(KEY) || "en"; } catch(e) {}
+  if(lang !== "ru") lang = "en";
+  let EX = {}, RULES = [];
+
+  // Russian plural: pl(5, ["день","дня","дней"]) -> "дней". Fractions take the second form.
+  const pl = (n, f) => { n = Math.abs(+n); if(!Number.isInteger(n)) return f[1];
+    const a = n % 10, b = n % 100; return a===1 && b!==11 ? f[0] : (a>=2 && a<=4 && (b<10 || b>=20)) ? f[1] : f[2]; };
+  const DAYS = s => { s = String(s).trim();
+    if(s === "half a day") return "полдня";
+    const m = s.match(/^(\d+(?:\.\d+)?) days?$/); return m ? `${m[1]} ${pl(+m[1], ["день","дня","дней"])}` : s; };
+  const RG = s => String(s)
+    .replace(/^(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})$/, "с $1 по $2")
+    .replace(/^(\d{4}-\d{2}-\d{2}), morning$/, "$1, утро")
+    .replace(/^(\d{4}-\d{2}-\d{2}), afternoon$/, "$1, после обеда");
+
+  const core = s => {
+    if(Object.prototype.hasOwnProperty.call(EX, s)) return EX[s];
+    for(const [re, fn] of RULES){ const m = s.match(re); if(m){ const r = typeof fn === "function" ? fn(m) : fn; if(r != null) return r; } }
+    return null;
+  };
+  // Translate a piece inside a rule. Returns the input unchanged when there is no translation.
+  const T = s => { if(s == null) return s; const k = String(s).replace(/\s+/g, " ").trim(); const r = core(k); return r == null ? String(s) : r; };
+  // Translate a full text, keeping its leading and trailing spaces.
+  const tr = s => {
+    if(lang !== "ru" || s == null) return s;
+    const str = String(s), m = str.match(/^(\s*)([\s\S]*?)(\s*)$/), k = m[2].replace(/\s+/g, " ");
+    if(!k) return str; const r = core(k); return r == null ? str : m[1] + r + m[3];
+  };
+
+  const ATTRS = ["placeholder", "aria-label", "title"];
+  const doNode = n => {
+    if(n.nodeType === 3){
+      const p = n.parentNode; if(!p || /^(SCRIPT|STYLE)$/.test(p.nodeName) || (p.closest && p.closest("[data-notr]"))) return;
+      const v = tr(n.data); if(v !== n.data) n.data = v;
+    } else if(n.nodeType === 1){
+      if(n.closest("[data-notr]")) return;
+      for(const a of ATTRS){ const v = n.getAttribute(a); if(v){ const t = tr(v); if(t !== v) n.setAttribute(a, t); } }
+    }
+  };
+  const walk = root => {
+    if(lang !== "ru" || !root) return;
+    if(root.nodeType === 3){ doNode(root); return; }
+    if(root.nodeType !== 1) return;
+    doNode(root); const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    while(w.nextNode()) doNode(w.currentNode);
+  };
+  const obs = new MutationObserver(ms => { if(lang !== "ru") return; for(const m of ms){
+    if(m.type === "characterData" || m.type === "attributes") doNode(m.target); else m.addedNodes.forEach(walk); } });
+
+  const nativeConfirm = window.confirm.bind(window);
+  window.confirm = msg => nativeConfirm(tr(msg));
+
+  let baseTitle = document.title;
+  const apply = () => { document.documentElement.lang = lang; document.title = tr(baseTitle); };
+  const start = () => { baseTitle = document.title; apply();
+    obs.observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:ATTRS}); walk(document.body); };
+  const set = l => { lang = l === "ru" ? "ru" : "en"; try { localStorage.setItem(KEY, lang); } catch(e) {} apply();
+    if(typeof window.render === "function") window.render(); walk(document.body); };
+
+  // Language buttons for the header
+  const toggle = () => `<span class="lang" data-notr role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="${lang==="en"}" title="English">EN</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}" title="Русский">RU</button></span>`;
+  document.addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if(b){ e.stopPropagation(); set(b.dataset.lang); } }, true);
+
+  return { get lang(){ return lang; }, tr, T, pl, DAYS, RG, toggle, start, set,
+    add(ex, rules){ for(const k in (ex || {})) if(!(k in EX)) EX[k] = ex[k]; RULES = RULES.concat(rules || []); } };
+})();
+const tr = I18N.tr;
+
+/* Russian texts for Leaveboard */
+(() => {
+const {T, pl, DAYS, RG} = I18N;
+const TYPE = {"Vacation":"Отпуск","Sick leave":"Больничный","Work travel (off-site)":"Командировка (выезд)",
+  "vacation":"отпуск","sick leave":"больничный","work travel (off-site)":"командировка (выезд)","work travel":"командировка"};
+const TYPE_GEN = {"vacation":"отпуска","sick leave":"больничного","work travel":"командировки","work travel (off-site)":"командировки (выезд)"};
+const HOL = {"New Year's Day":"Новый год","Easter Monday":"Пасхальный понедельник","Labour Day":"День труда","Europe Day":"День Европы",
+  "Ascension Day":"Вознесение","Whit Monday":"Духов день","National Day":"Национальный праздник","Assumption Day":"Успение",
+  "All Saints' Day":"День всех святых","Christmas Day":"Рождество","St Stephen's Day":"День святого Стефана"};
+const NOTE = {"Family visit":"Семейная поездка","Booked by HR":"Забронировано HR","Supplier visit":"Визит к поставщику",
+  "Conference, Munich":"Конференция, Мюнхен","Client workshops, Paris":"Воркшопы с клиентом, Париж","Clashes with lab audit":"Совпадает с аудитом лаборатории"};
+const note = s => { if(NOTE[s]) return NOTE[s]; let m;
+  if((m = s.match(/^Christmas closure (\d{4})$/))) return `Рождественские каникулы ${m[1]}`;
+  if((m = s.match(/^Summer break (\d{4})$/))) return `Летние каникулы ${m[1]}`;
+  if((m = s.match(/^Booked by (.+)$/))) return `Забронировал(а) ${m[1]}`;
+  return s; };
+const DATE = "\\d{4}-\\d{2}-\\d{2}";
+const RANGE = `(${DATE}(?: to ${DATE}|, morning|, afternoon)?)`;
+const TYPES_RE = "(Vacation|Sick leave|Work travel \\(off-site\\))";
+const people = n => `${n} ${pl(n, ["человека","человек","человек"])}`;
+
+I18N.add({
+  "My time off":"Мой отпуск", "Cancel":"Отменить", "Team calendar":"Календарь команды", "Approvals":"Согласования",
+  "People and balances":"Сотрудники и балансы", "Notifications":"Уведомления",
+  "Me":"Я", "Calendar":"Календарь", "People":"Сотрудники", "Alerts":"Оповещения",
+  "Request time off":"Новая заявка", "Vacation":"Отпуск", "Sick leave":"Больничный",
+  "Work travel (off-site)":"Командировка (выезд)", "Work travel":"Командировка",
+  "days available":"дн. доступно", "Entitlement":"Право на отпуск", "Entitlement (pro rata)":"Право на отпуск (пропорционально)",
+  "Adjustments":"Корректировки", "Taken":"Использовано", "Awaiting approval":"Ждёт согласования",
+  "Available to book":"Доступно для бронирования", "Your requests":"Ваши заявки", "Upcoming":"Предстоящие",
+  "Past and closed":"Прошедшие и закрытые",
+  "Nothing booked yet. Use \"Request time off\" to plan your next break.":"Пока ничего не запланировано. Нажмите «Новая заявка», чтобы спланировать отдых.",
+  "Waiting for manager":"Ждёт руководителя", "Waiting for CEO":"Ждёт генерального директора",
+  "Approved":"Одобрено", "Logged":"Записано", "Rejected":"Отклонено", "Cancelled":"Отменено",
+  "Manager":"Руководитель", "half a day":"полдня",
+  "Who is away, when. Luxembourg public holidays are built in, so working days are counted correctly.":"Кто и когда отсутствует. Праздники Люксембурга учтены, поэтому рабочие дни считаются правильно.",
+  "Previous month":"Предыдущий месяц", "Next month":"Следующий месяц", "This month":"Этот месяц",
+  "Person":"Сотрудник", "Weekend":"Выходной", "Half day":"Полдня", "Public holiday or weekend":"Праздник или выходной",
+  "Nobody is away this month.":"В этом месяце никто не отсутствует.",
+  "Vacation goes through two steps: the line manager, then the CEO. Sick leave and work travel are logged without approval.":"Отпуск согласуется в два шага: сначала руководитель, затем генеральный директор. Больничный и командировки регистрируются без согласования.",
+  "Balance if all pending requests are approved:":"Баланс, если все заявки будут одобрены:",
+  "(over balance)":"(сверх баланса)",
+  "Reject":"Отклонить", "Approve":"Одобрить",
+  "Nothing waiting for you. New requests from your team appear here and by email.":"Для вас ничего нет. Новые заявки команды появятся здесь и на почте.",
+  "Entitlements are pro rata from hire date and to the last working day, rounded up to the nearest half day.":"Право на отпуск считается пропорционально, с даты найма до последнего рабочего дня, с округлением вверх до половины дня.",
+  "Book for several people":"Забронировать для нескольких",
+  "Hired":"Нанят", "Last working day":"Последний рабочий день", "Carried":"Перенос", "Adjust":"Корр.",
+  "Pending":"На согласовании", "Remaining":"Остаток", "Settlement":"Расчёт", "Entitled":"Положено",
+  "Set a last working day to see the final settlement: pro rata entitlement plus carry-over and adjustments, minus days taken. A positive figure is paid out with the final salary. A negative figure is deducted.":"Укажите последний рабочий день, чтобы увидеть окончательный расчёт: право на отпуск пропорционально, плюс перенос и корректировки, минус использованные дни. Положительное число выплачивается с последней зарплатой, отрицательное удерживается.",
+  "Messages the app sends at each step. In production these go out by Outlook email or Teams, so nobody has to remember to chase.":"Сообщения, которые приложение отправляет на каждом шаге. В рабочей версии они уходят через Outlook или Teams, поэтому никому не нужно напоминать.",
+  "No messages yet.":"Сообщений пока нет.",
+  "Type":"Тип", "Duration":"Длительность", "Full days":"Полные дни", "First day":"Первый день", "Last day":"Последний день",
+  "Date":"Дата", "Part of day":"Часть дня", "Morning":"Утро", "Afternoon":"После обеда",
+  "Note (optional)":"Комментарий (необязательно)", "Visible to your approvers":"Видно тем, кто согласует",
+  "Send request":"Отправить заявку", "Send for approval":"Отправить на согласование", "Log it":"Записать",
+  "Half days for this type are booked by HR. Work travel can be booked as a half day by anyone.":"Полдня для этого типа бронирует HR. Командировку на полдня может оформить любой сотрудник.",
+  "Choose your dates.":"Выберите даты.", "The last day is before the first day.":"Последний день раньше первого.",
+  "These dates fall on weekends or public holidays. Nothing to book.":"Эти даты приходятся на выходные или праздники. Бронировать нечего.",
+  "Approved automatically.":"Одобряется автоматически.",
+  "Admin override: balance goes negative.":"Решение администратора: баланс уйдёт в минус.",
+  "of vacation. Balance after approval:":"отпуска. Баланс после одобрения:",
+  "of sick leave. No approval needed. Your manager and HR are notified.":"больничного. Согласование не нужно. Руководитель и HR получат уведомление.",
+  "of work travel. Logged straight away. No approval and no effect on your balance.":"командировки. Записывается сразу, без согласования и без влияния на баланс.",
+  "For company closures or team days. Bookings are approved straight away and deducted from each balance.":"Для корпоративных каникул и командных дней. Бронирование одобряется сразу и списывается с баланса каждого.",
+  "Preset":"Шаблон", "Custom dates":"Свои даты", "Booking mode":"Режим бронирования",
+  "Compensation days to credit each person":"Компенсационные дни каждому сотруднику",
+  "Use this when the company gives back days for a closure.":"Используйте, если компания возвращает дни за каникулы.",
+  "Everyone":"Все", "Book":"Забронировать", "Select at least one person.":"Выберите хотя бы одного сотрудника.",
+  "No working days in this range.":"В этом диапазоне нет рабочих дней.",
+  "Books":"Будет забронировано", "of vacation for":"отпуска для", "Request sent for approval":"Заявка отправлена на согласование",
+  "Approved. Sent to the CEO.":"Одобрено. Отправлено генеральному директору.",
+  "Release withdrawn":"Публикация отменена", "Away today: nobody":"Сегодня отсутствуют: никто", "Last working day ":"Последний рабочий день"
+}, [
+  [/^Vacation balance (\d{4})$/, m => `Остаток отпуска на ${m[1]} год`],
+  [/^Hello, (.+)$/, m => `Здравствуйте, ${m[1]}`],
+  [/^Book time off, follow approvals and check your balance for (\d{4})\.$/, m => `Бронируйте отпуск, следите за согласованием и проверяйте остаток на ${m[1]} год.`],
+  [/^Used (.+)$/, m => `Использовано ${m[1]}`], [/^Pending (.+)$/, m => `На согласовании ${m[1]}`], [/^Available (.+)$/, m => `Доступно ${m[1]}`],
+  [/^(\S+) used, (\S+) pending, (\S+) available$/, m => `Использовано ${m[1]}, на согласовании ${m[2]}, доступно ${m[3]}`],
+  [/^Carried over from (\d{4})$/, m => `Перенесено с ${m[1]} года`],
+  [/^Your last working day is (\S+)\. Entitlement is calculated up to that date\.$/, m => `Ваш последний рабочий день: ${m[1]}. Право на отпуск рассчитано до этой даты.`],
+  [/^Entitled (\d{4})$/, m => `Положено в ${m[1]}`],
+  [/^Away today: (\d+)$/, m => `Сегодня отсутствуют: ${m[1]}`],
+  [/^(\d+(?:\.\d+)? days?)$/, m => DAYS(m[1])],
+  [/^(\d+) (people|person)$/, m => people(+m[1])],
+  [/^, and credits (.+) back to each\.$/, m => `, и каждому вернётся ${DAYS(m[1])}.`],
+  [/^Booked for (\d+) (people|person)$/, m => `Забронировано для ${people(+m[1])}`],
+  [/^Skipped because they already have time off then or have left: (.+)\.$/, m => `Пропущены, так как у них уже есть отсутствие в эти даты или они уволились: ${m[1]}.`],
+  [/^This is (.+) more than you have available \((.+)\)\.$/, m => `Это на ${DAYS(m[1])} больше, чем доступно (${m[2]}).`],
+  [new RegExp(`^You already have (.+) booked on ${RANGE}\\.$`), m => `У вас уже есть ${TYPE[m[1]] || m[1]}: ${RG(m[2])}.`],
+  [/^\. Goes to (.+), then (.+)\.$/, m => `. Направляется: ${m[1]}, затем ${m[2]}.`],
+  [/^\. Goes to (.+)\.$/, m => `. Направляется: ${m[1]}.`],
+  [/^\. Approved automatically\.$/, ". Одобряется автоматически."],
+  [/^\. Approved by (.+)\.$/, m => `. Одобрено: ${m[1]}.`],
+  [/^(.+) requests (.+) of vacation$/, m => `${m[1]} просит ${DAYS(m[2])} отпуска`],
+  [/^Also away in this period: (.+)$/, m => `Также отсутствуют в эти даты: ${m[1]}`],
+  [/^Christmas closure (\d{4})$/, m => note(m[0])], [/^Summer break (\d{4})$/, m => note(m[0])],
+  [/^Public holidays: (.+)$/, m => `Праздники: ${m[1].replace(/New Year's Day|Easter Monday|Labour Day|Europe Day|Ascension Day|Whit Monday|National Day|Assumption Day|All Saints' Day|Christmas Day|St Stephen's Day/g, x => HOL[x])}`],
+  [/^(New Year's Day|Easter Monday|Labour Day|Europe Day|Ascension Day|Whit Monday|National Day|Assumption Day|All Saints' Day|Christmas Day|St Stephen's Day)$/, m => HOL[m[1]]],
+  // "Vacation, 5 days" and "Vacation, 5 days. 2026-10-19 to 2026-10-23. Awaiting approval"
+  [new RegExp(`^${TYPES_RE}, (half a day|\\d+(?:\\.\\d+)? days?)(?:\\. ${RANGE}(\\. Awaiting approval)?)?$`),
+    m => `${TYPE[m[1]]}, ${DAYS(m[2])}${m[3] ? `. ${RG(m[3])}` : ""}${m[4] ? ". Ждёт согласования" : ""}`],
+  // Range with optional note: "2026-10-19 to 2026-10-23. Family visit"
+  [new RegExp(`^${RANGE}(?:\\. (.+))?$`), m => `${RG(m[1])}${m[2] ? ". " + note(m[2]) : ""}`],
+  // Calendar tooltip "Name: Vacation, range (pending)"
+  [new RegExp(`^(.+): ${TYPES_RE}, ${RANGE}( \\(pending\\))?$`), m => `${m[1]}: ${TYPE[m[2]]}, ${RG(m[3])}${m[4] ? " (на согласовании)" : ""}`],
+  // Away-today chip "Name, sick leave"
+  [/^(.+), (vacation|sick leave|work travel \(off-site\))$/, m => `${m[1]}, ${TYPE[m[2]]}`],
+  [/^(.+), reports to (.+)$/, m => `${T(m[1])}, подчиняется: ${m[2]}`],
+  [/^(.+)\. Hired (\S+)$/, m => `${T(m[1])}. Нанят(а) ${m[2]}`],
+  [/^Last working day for (.+)$/, m => `Последний рабочий день: ${m[1]}`],
+  [/^Adjustment for (.+)$/, m => `Корректировка: ${m[1]}`],
+  [/^Pay (\S+)$/, m => `Выплатить ${m[1]}`], [/^Deduct (\S+)$/, m => `Удержать ${m[1]}`],
+  [/^Pay out (.+) at the end$/, m => `Выплатить ${DAYS(m[1])} при увольнении`],
+  [/^Deduct (.+) at the end$/, m => `Удержать ${DAYS(m[1])} при увольнении`],
+  [/^Now viewing as (.+)$/, m => `Теперь вы смотрите как ${m[1]}`],
+  // Notifications log
+  [new RegExp(`^To (.+?): (.+?) requested (.+?) of vacation, ${RANGE}\\.( Approve or reject in (\\S+)\\.)?$`),
+    m => `Кому: ${m[1]}. ${m[2]} просит ${DAYS(m[3])} отпуска, ${RG(m[4])}.${m[5] ? ` Одобрите или отклоните в ${m[6]}.` : ""}`],
+  [new RegExp(`^To (.+?): (.+?) booked (.+?) of vacation, ${RANGE}\\.$`), m => `Кому: ${m[1]}. ${m[2]} забронировал(а) ${DAYS(m[3])} отпуска, ${RG(m[4])}.`],
+  [new RegExp(`^To (.+?): (.+?) logged sick leave, ${RANGE}\\.$`), m => `Кому: ${m[1].replace(" and ", " и ")}. ${m[2]} оформил(а) больничный, ${RG(m[3])}.`],
+  [new RegExp(`^To (.+?): your vacation request for ${RANGE} was rejected by (.+)\\.$`), m => `Кому: ${m[1]}. Ваша заявка на отпуск ${RG(m[2])} отклонена (${m[3]}).`],
+  [new RegExp(`^To (.+?), copy (.+?): your vacation for ${RANGE} is approved\\. Remember to set your out-of-office\\.$`), m => `Кому: ${m[1]}, копия: ${m[2]}. Ваш отпуск ${RG(m[3])} одобрен. Не забудьте включить автоответ.`],
+  [new RegExp(`^To (.+?): (.+?)'s vacation \\(${RANGE}\\) was approved by (.+?) and needs your approval\\.$`), m => `Кому: ${m[1]}. Отпуск сотрудника ${m[2]} (${RG(m[3])}) одобрен руководителем (${m[4]}) и ждёт вашего согласования.`],
+  [/^To (.+?): (.+?)'s vacation was approved by (.+?) and needs your approval\.$/, m => `Кому: ${m[1]}. Отпуск сотрудника ${m[2]} одобрен руководителем (${m[3]}) и ждёт вашего согласования.`],
+  [new RegExp(`^To (\\d+) people: (.+?) booked for you, (${DATE}(?: to ${DATE})?)(?:\\. (.+?) credited back to your balance)?\\.$`),
+    m => `Кому: ${people(+m[1])}. ${m[2] === "Time off" ? "Отсутствие" : note(m[2])} забронировано для вас, ${RG(m[3])}${m[4] ? `. На баланс возвращено ${DAYS(m[4])}` : ""}.`],
+  [new RegExp(`^(.+?) cancelled (.+?)'s (vacation|sick leave|work travel \\(off-site\\)), ${RANGE}\\. Days returned to the balance\\.$`), m => `${m[1]} отменил(а) ${TYPE[m[3]]} сотрудника ${m[2]}, ${RG(m[4])}. Дни возвращены на баланс.`],
+  [new RegExp(`^(.+?) cancelled (vacation|sick leave|work travel \\(off-site\\)), ${RANGE}\\. Days returned to the balance\\.$`), m => `${m[1]} отменил(а) ${TYPE[m[2]]}, ${RG(m[3])}. Дни возвращены на баланс.`],
+  [new RegExp(`^(.+?) logged work travel, ${RANGE}\\. No message sent\\.$`), m => `${m[1]} записал(а) командировку, ${RG(m[2])}. Сообщение не отправлялось.`],
+  [/^Booked by (.+)$/, m => `Забронировал(а) ${m[1]}`],
+  [/^Time off$/, "Отсутствие"]
+]);
+})();
+
+/* Shared Russian texts */
+(() => {
+const {T, pl} = I18N;
+const FOOT = {
+  "data in SharePoint lists, notifications through Outlook or Teams": "данные в списках SharePoint, уведомления через Outlook или Teams",
+  "candidates in a SharePoint list, emails sent from your own Outlook mailbox": "кандидаты в списке SharePoint, письма уходят из вашего ящика Outlook",
+  "goals and progress in SharePoint lists, updates sent by Outlook or Teams": "цели и прогресс в списках SharePoint, обновления через Outlook или Teams"
+};
+I18N.add({
+  "Demo with fictional data. Reload to reset.": "Демо. Данные вымышлены.",
+  "Automation and operations consulting": "Консалтинг по автоматизации и операционным процессам",
+  "Northwind Labs": "Northwind Labs",
+  "Close": "Закрыть",
+  "Cancel": "Отмена",
+  "Done": "Готово",
+  "Signed in as": "Вы вошли как",
+  "Viewing as": "Вы смотрите как",
+  "Language": "Язык",
+  "CEO": "Генеральный директор",
+  "Engineering": "Инженерия",
+  "R&D": "R&D",
+  "Commercial": "Продажи",
+  "Operations": "Операции",
+  "Leadership": "Руководство",
+  "Software Engineer": "Инженер-программист",
+  "Embedded Engineer": "Инженер встраиваемых систем",
+  "Engineering Lead": "Руководитель инженерного отдела",
+  "R&D Lead": "Руководитель R&D",
+  "Research Scientist": "Научный сотрудник",
+  "Lab Technician": "Лаборант",
+  "Business Development": "Развитие бизнеса",
+  "Business Development Manager": "Менеджер по развитию бизнеса",
+  "People and Operations": "Персонал и операции",
+  "Head of People and Operations": "Руководитель по персоналу и операциям",
+  "Finance Manager": "Финансовый менеджер",
+  "Data Engineer": "Инженер данных",
+  "Marketing Lead": "Руководитель маркетинга",
+  "Email": "Email"
+}, [
+  [/^(\S+) runs on Microsoft 365: sign-in with Microsoft accounts, (.+)\. Designed and built by (.+)\. Want software that fits the way your team works\?$/,
+    m => `${m[1]} работает на Microsoft 365: вход через учётные записи Microsoft, ${FOOT[m[2]] || m[2]}. Разработка: ${m[3] === "Natalia Stepanova" ? "Наталья Степанова" : m[3]}. Хотите систему, которая подстроена под работу вашей команды?`],
+  [/^(\S+) demo$/, m => `${m[1]}: демо`],
+  [/^Signed in as (.+)$/, m => `Вы вошли как ${m[1]}`],
+  [/^Now viewing as (.+)$/, m => `Теперь вы смотрите как ${m[1]}`],
+  [/^(.+) \(you\)$/, m => `${m[1]} (вы)`],
+  // "Name, Job title" and "Name, Job title (admin)"
+  [/^([^,]+), (.+?)( \(admin\))?$/, m => { const t = T(m[2]); return t !== m[2] ? `${m[1]}, ${t}${m[3] ? " (админ)" : ""}` : null; }]
+]);
+})();
+
+</script>
 <script>
 /* ============================================================
    Settings for the demo. Change names here.
@@ -459,6 +727,7 @@ function render(){
     <div class="brand"><span class="mark" aria-hidden="true">${"<i></i>".repeat(9)}</span>${esc(CONFIG.product)}</div>
     <span class="co">${esc(CONFIG.company)}</span>
     <span class="demo-chip">Demo with fictional data. Reload to reset.</span>
+    ${I18N.toggle()}
     <label class="persona">Viewing as
       <select data-act="persona">
         ${S.people.map(p => `<option value="${p.id}" ${p.id===S.me?"selected":""}>${esc(p.name)}, ${esc(p.title)}${p.isAdmin?" (admin)":""}</option>`).join("")}
@@ -565,7 +834,7 @@ function viewTeam(me){
   const first = `${y}-${pad(m)}-01`;
   const days = new Date(Date.UTC(y,m,0)).getUTCDate();
   const dates = Array.from({length:days},(_,i)=>addDays(first,i));
-  const monthName = new Date(D(first)).toLocaleString("en-GB",{month:"long",year:"numeric",timeZone:"UTC"});
+  const monthName = (s => s.charAt(0).toUpperCase()+s.slice(1))(new Date(D(first)).toLocaleString(I18N.lang==="ru"?"ru-RU":"en-GB",{month:"long",year:"numeric",timeZone:"UTC"}));
   const order = [...S.people].sort((a,b)=>(a.id===S.me?-1:b.id===S.me?1:0) || a.name.localeCompare(b.name));
   const offToday = S.requests.filter(r => live(r) && r.start<=TODAY && r.end>=TODAY && isWorkday(TODAY));
 
@@ -603,7 +872,7 @@ function viewTeam(me){
   </div>
   <div class="cal-head">
     <button class="btn small" data-act="month" data-d="-1" aria-label="Previous month">‹</button>
-    <span class="month">${monthName}</span>
+    <span class="month" data-notr>${monthName}</span>
     <button class="btn small" data-act="month" data-d="1" aria-label="Next month">›</button>
     <button class="btn small" data-act="month" data-d="0">This month</button>
   </div>
@@ -611,7 +880,7 @@ function viewTeam(me){
   <div class="cal-scroll">
     <table class="cal">
       <thead><tr><th class="who">Person</th>
-        ${dates.map(s=>`<th class="${isWeekend(s)?"we":""} ${holidayName(s)?"hol":""} ${s===TODAY?"today":""}" title="${esc(holidayName(s)||"")}">${"SMTWTFS"[dow(s)]}<span class="dn">${+s.slice(8)}</span></th>`).join("")}
+        ${dates.map(s=>`<th class="${isWeekend(s)?"we":""} ${holidayName(s)?"hol":""} ${s===TODAY?"today":""}" title="${esc(holidayName(s)||"")}">${(I18N.lang==="ru"?"ВПВСЧПС":"SMTWTFS")[dow(s)]}<span class="dn">${+s.slice(8)}</span></th>`).join("")}
       </tr></thead>
       <tbody>
         ${order.map(p=>`<tr class="${p.id===S.me?"me":""}"><th class="who" scope="row"><div class="n">${esc(p.name)}</div><div class="r">${esc(p.title)}</div></th>${dates.map(s=>cell(p,s)).join("")}</tr>`).join("")}
@@ -942,6 +1211,7 @@ document.addEventListener("input", e => { if(S.modal && e.target.closest(".modal
 document.addEventListener("keydown", e => { if(e.key==="Escape" && S.modal){ S.modal=null; render(); } });
 
 render();
+I18N.start();
 </script>
 </body>
 </html>
